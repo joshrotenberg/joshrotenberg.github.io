@@ -1,0 +1,15 @@
+---
+layout: default
+title: Your New Jekyll Site
+---
+
+<code id="gist-7934150" data-file="lolspeed.erl" data-line="5-13"></code>  
+
+<div id="home">
+  <h1>Blog Posts</h1>
+  <ul class="posts">
+    {% for post in site.posts %}
+      <li><span>{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
