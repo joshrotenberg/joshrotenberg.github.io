@@ -2,7 +2,7 @@
 layout: post
 title: "three bucks"
 description: "i found it"
-categories: random update
+category: random
 tags: [money]
 ---
 
