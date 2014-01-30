@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>jrdc- Implementing Haskell's Data.List inits and tails Functions in Clojure</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">josh rotenberg dot com</a>
+            </div>
+            <div id="navigation">
+                <a href="../">home</a>
+                <a href="../about.html">about</a>
+                <a href="../contact.html">contact</a>
+                <a href="../archive.html">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+		 <h1>Implementing Haskell's Data.List inits and tails Functions in Clojure</h1> 
+
+            <div class="info">
+    Posted on December 31, 2013
+    
+</div>
+
+<p><a href="http://haskell.org">Haskell</a>’s <a href="http://hackage.haskell.org/package/base-4.6.0.1/docs/Data-List.html">Data.List</a> has some interesting functions. I’ve been playing around with a few recently and decided to see if there were Clojure equivalents, and if not, what it would take to implement them.</p>
+<p>The first function is <code>tails</code> which returns the final segments of the argument, longest first:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">λ&gt; tails [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]
+[[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>],[<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>],[<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>],[<span class="dv">4</span>,<span class="dv">5</span>],[<span class="dv">5</span>],[]]</code></pre>
+<p>Before looking at the actual implementation, I assumed (incorrectly[1]) that it would use <code>tail</code> and recurse over and accumulate the list until it was empty. Haskell’s <code>tail</code> is similar to <code>rest</code> or <code>next</code> in Clojure:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">λ&gt; tail [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]
+[<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]</code></pre>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (<span class="kw">next</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>])
+(<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>)
+user&gt; (<span class="kw">rest</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>])
+(<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>)</code></pre>
+<p>I messed around with <code>loop</code>/<code>recur</code> for a bit but then I remembered <code>iterate</code>:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (<span class="kw">doc</span> <span class="kw">iterate</span>)
+-------------------------
+clojure.core/iterate
+([f x])
+  Returns a lazy <span class="kw">sequence</span> of x, (f x), (f (f x)) etc. f must be free of side-effects
+user&gt; (<span class="kw">def</span><span class="fu"> s </span>'(<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>))
+<span class="kw">#'</span>user/s
+user&gt; (<span class="kw">take</span> <span class="dv">2</span> (<span class="kw">iterate</span> <span class="kw">rest</span> s))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>))
+user&gt; (<span class="kw">take</span> <span class="dv">3</span> (<span class="kw">iterate</span> <span class="kw">rest</span> s))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>))</code></pre>
+<p>Great. <code>iterate</code> will just keep going because it returns a lazy sequence, so using <code>take</code> we can limit the result to just what we need:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (<span class="kw">take</span> (<span class="kw">count</span> s) (<span class="kw">iterate</span> <span class="kw">rest</span> s))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">5</span>))
+user&gt; <span class="co">;; ooops, Haskell's tails goes one more and gives us the empty list, []</span>
+user&gt; (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> s)) (<span class="kw">iterate</span> <span class="kw">rest</span> s)))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">5</span>) ())
+user&gt; <span class="co">;; note that we want rest here instead of next</span>
+user&gt; (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> s)) (<span class="kw">iterate</span> <span class="kw">next</span> s))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">5</span>) nil) 
+user&gt; <span class="co">;; ok, lets wrap it up into a function and test it out on something else ...</span>
+user&gt; (<span class="kw">defn</span><span class="fu"> tails </span>[xs] (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> xs)) (<span class="kw">iterate</span> <span class="kw">rest</span> xs)))
+<span class="kw">#'</span>user/tails
+user&gt; (tails [<span class="st">&quot;what&quot;</span> <span class="st">&quot;is&quot;</span> <span class="st">&quot;for&quot;</span> <span class="st">&quot;lunch&quot;</span>])
+([<span class="st">&quot;what&quot;</span> <span class="st">&quot;is&quot;</span> <span class="st">&quot;for&quot;</span> <span class="st">&quot;lunch&quot;</span>] (<span class="st">&quot;is&quot;</span> <span class="st">&quot;for&quot;</span> <span class="st">&quot;lunch&quot;</span>) (<span class="st">&quot;for&quot;</span> <span class="st">&quot;lunch&quot;</span>) (<span class="st">&quot;lunch&quot;</span>) ())
+user&gt;</code></pre>
+<p>Hrm, it still works but now we have a mixture of types in the result. This may or may not bother you depending on what you plan to do with the result. We could normalize it using <code>map</code> and <code>sequence</code>:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (<span class="kw">defn</span><span class="fu"> tails </span>[xs] (<span class="kw">map</span> <span class="kw">sequence</span> (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> xs)) (<span class="kw">iterate</span> <span class="kw">rest</span> xs))))
+<span class="kw">#'</span>user/tails
+user&gt;  (<span class="kw">=</span> (tails '(<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>)) (tails [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>]))
+true
+user&gt; </code></pre>
+<p>Or, with a little more work we can make the resulting collections the same type as the one passed in:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> tails </span>[xs]
+  (<span class="kw">let</span> [f (<span class="kw">cond</span>
+           (<span class="kw">vector?</span> xs) <span class="kw">vec</span>
+           (<span class="kw">set?</span> xs) <span class="kw">set</span>
+           <span class="kw">:else</span> <span class="kw">sequence</span>)]
+    (<span class="kw">map</span> f (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> xs)) (<span class="kw">iterate</span> <span class="kw">rest</span> xs)))))</code></pre>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (tails [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])
+([<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>] [<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>] [<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>] [<span class="dv">4</span> <span class="dv">5</span>] [<span class="dv">5</span>] [])
+user&gt; (tails '(<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>))
+((<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">4</span> <span class="dv">5</span>) (<span class="dv">5</span>) ())
+user&gt; (tails #{<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>})
+(#{<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>} #{<span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>} #{<span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>} #{<span class="dv">4</span> <span class="dv">5</span>} #{<span class="dv">5</span>} #{})
+user&gt; </code></pre>
+<p>Next up is a similar function, <code>inits</code>, which is sort of the inverse of <code>tails</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">λ&gt; inits [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]
+[[],[<span class="dv">1</span>],[<span class="dv">1</span>,<span class="dv">2</span>],[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>],[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>],[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]]</code></pre>
+<p><code>inits</code> starts with an empty list, and then slowly builds upon the argument until the final item is the full list given. Here was my first attempt:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (<span class="kw">def</span><span class="fu"> xs </span>[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])
+<span class="kw">#'</span>user/xs
+user&gt;  (<span class="kw">reverse</span> (<span class="kw">take</span> (<span class="kw">inc</span> (<span class="kw">count</span> xs)) (<span class="kw">iterate</span> <span class="kw">drop-last</span> xs)))
+(() (<span class="dv">1</span>) (<span class="dv">1</span> <span class="dv">2</span>) (<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>) (<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>) [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])
+user&gt; </code></pre>
+<p>Aside from the reverse, we basically switch out rest for drop-last. This works, but the reverse kind of feels like cheating to me. Here is a less hacky option: a list comprehension. We’ll package it up into a function as well to hide the details:</p>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">defn</span><span class="fu"> inits </span>[xs]
+  (<span class="kw">for</span> [n (<span class="kw">range</span> (<span class="kw">count</span> xs))]
+    (<span class="kw">take</span> n xs)))</code></pre>
+<pre class="sourceCode clojure"><code class="sourceCode clojure">user&gt; (inits xs)
+(() (<span class="dv">1</span>) (<span class="dv">1</span> <span class="dv">2</span>) (<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>) (<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>))
+user&gt;</code></pre>
+<p>And as above, retaining the collection type still applies.</p>
+<p>There are a bunch of other good ones in <code>Data.List</code>. I might try to talk about more later.</p>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

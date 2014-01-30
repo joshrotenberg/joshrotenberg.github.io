@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>jrdc- Functions in Data.Maybe</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">josh rotenberg dot com</a>
+            </div>
+            <div id="navigation">
+                <a href="../">home</a>
+                <a href="../about.html">about</a>
+                <a href="../contact.html">contact</a>
+                <a href="../archive.html">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+		 <h1>Functions in Data.Maybe</h1> 
+
+            <div class="info">
+    Posted on December 12, 2013
+    
+</div>
+
+<p>Most introductions to monads in Haskell talk about <code>Maybe</code>. Here are some of the handy functions in that module for operating on the type. <code>maybe</code> (the first function below) is should be available in ghci right away in Prelude, but the others require that you load the Data.Maybe module in ghci:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">λ&gt; <span class="fu">:</span>m <span class="fu">+</span><span class="dt">Data.Maybe</span></code></pre>
+<p><code>maybe</code> either applies a function to a <code>Maybe</code> or returns a default value. It’s type signature looks like this:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">maybe<span class="ot"> ::</span> b <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> b
+
+λ&gt; <span class="kw">let</span> x <span class="fu">=</span> <span class="dt">Just</span> <span class="dv">40</span>
+λ&gt; <span class="kw">let</span> y <span class="fu">=</span> <span class="dt">Nothing</span>
+λ&gt; maybe <span class="dv">30</span> (<span class="fu">*</span><span class="dv">2</span>) x <span class="co">-- x is Just 40, so it gets applied to (*2)</span>
+<span class="dv">80</span>
+λ&gt; maybe <span class="dv">30</span> (<span class="fu">*</span><span class="dv">2</span>) y <span class="co">-- y is Nothing, we end up with the default value</span>
+<span class="dv">30</span></code></pre>
+<p><code>isJust</code> is straightforward. Given a <code>Maybe</code> argument, it returns true if it’s <code>Just</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isJust ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+
+λ&gt; isJust x
+<span class="dt">True</span>
+λ&gt; isJust y
+<span class="dt">False</span></code></pre>
+<p><code>isNothing</code>: not hard to figure what this does:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">isNothing ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+
+λ&gt; isNothing x
+<span class="dt">False</span>
+λ&gt; isNothing y
+<span class="dt">True</span></code></pre>
+<p><code>fromJust</code> is a relatively unsafe way to get at the value of a <code>Maybe</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">fromJust ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> a
+
+λ&gt; fromJust x
+<span class="dv">40</span>
+λ&gt; fromJust y
+<span class="fu">***</span> <span class="dt">Exception</span><span class="fu">:</span> <span class="dt">Maybe</span><span class="fu">.</span>fromJust<span class="fu">:</span> <span class="dt">Nothing</span> <span class="co">-- woops. use a case expression in real code</span></code></pre>
+<p><code>fromMaybe</code> is similar to <code>maybe</code>, but instead of a function argument being applied to the value, you simply get the value in your <code>Maybe</code> or the default you pass in:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">fromMaybe ::</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> a
+
+λ&gt; fromMaybe <span class="dv">30</span> x
+<span class="dv">40</span>
+λ&gt; fromMaybe <span class="dv">30</span> y
+<span class="dv">30</span></code></pre>
+<p><code>maybeToList</code> will plop your <code>Maybe</code>’s value into a list and return it:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">maybeToList ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> [a]
+
+λ&gt; maybeToList x
+[<span class="dv">40</span>]
+λ&gt; maybeToList y
+[] <span class="co">-- always get a value, it just happens to be an empty list if we pass in Nothing</span></code></pre>
+<p><code>listToMaybe</code> goes the other way:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">listToMaybe ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+
+λ&gt; listToMaybe [<span class="dv">2</span>]
+<span class="dt">Just</span> <span class="dv">2</span>
+λ&gt; listToMaybe <span class="fu">$</span> maybeToList x
+<span class="dt">Just</span> <span class="dv">40</span>
+λ&gt; listToMaybe <span class="fu">$</span> maybeToList y
+<span class="dt">Nothing</span>
+λ&gt; listToMaybe [<span class="dv">20</span>,<span class="dv">40</span>,<span class="dv">60</span>] <span class="co">-- listToMaybe will drop all but the first element</span>
+<span class="dt">Just</span> <span class="dv">20</span>
+λ&gt; listToMaybe <span class="st">&quot;foo&quot;</span>
+<span class="dt">Just</span> <span class="ch">'f'</span></code></pre>
+<p><code>catMaybes</code> takes a list of <code>Maybe</code>s and returns a list of the values for any <code>Just</code> value, but drops out your <code>Nothing</code>s:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">catMaybes ::</span> [<span class="dt">Maybe</span> a] <span class="ot">-&gt;</span> [a]
+
+λ&gt; catMaybes [x, y, (<span class="dt">Just</span> <span class="dv">21</span>), <span class="dt">Nothing</span>, <span class="dt">Just</span>(<span class="dv">22</span>)]
+[<span class="dv">40</span>,<span class="dv">21</span>,<span class="dv">22</span>]</code></pre>
+<p><code>mapMaybe</code> lets you apply a function that accepts and returns a <code>Maybe</code> to a list of <code>Maybe</code>s, but returns a list of the values (and skips the <code>Nothing</code>s):</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mapMaybe ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+
+λ&gt; <span class="kw">let</span> f x <span class="fu">=</span> (<span class="fu">+</span><span class="dv">2</span>) <span class="fu">&lt;$&gt;</span> x <span class="co">-- or fmap (+2) x</span>
+λ&gt; f (<span class="dt">Just</span> <span class="dv">30</span>)
+<span class="dt">Just</span> <span class="dv">32</span>
+λ&gt; mapMaybe f [(<span class="dt">Just</span> <span class="dv">20</span>), <span class="dt">Nothing</span>, x]
+[<span class="dv">22</span>,<span class="dv">42</span>]</code></pre>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
