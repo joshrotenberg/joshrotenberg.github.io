@@ -1,9 +1,6 @@
 ---
-layout: post
-title: "Haskell: http-streams and Aeson"
-description: "playing around with RESTful api clients in Haskell"
+title: Haskell: http-streams and Aeson
 category: haskell
-tags: [haskell, http, json]
 ---
 
 ### Learning Haskell

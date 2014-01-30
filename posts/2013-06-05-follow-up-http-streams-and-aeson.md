@@ -1,9 +1,6 @@
 ---
-layout: post
-title: "Follow Up: http-streams and Aeson"
-description: "fixed two things with the final source"
+title: Follow Up: http-streams and Aeson
 category: haskell
-tags: [haskell, http, json]
 ---
 
 ### Followup

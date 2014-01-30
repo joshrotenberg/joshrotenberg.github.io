@@ -1,9 +1,6 @@
 ---
-layout: post
-title: "Erlang function options"
-description: "Handling optional arguments"
+title: Erlang function options
 category: erlang
-tags: [erlang]
 ---
 
 In working on a small Erlang project I found myself writing a few
@@ -12,9 +9,9 @@ a few optional ones. A common idiom in Erlang is take a
 list of tuples and/or atoms for optional parameters. For example,
 `gen_tcp:connect` has a signature like this: `gen_tcp:connect(Host, Port, Options)`, where Options can be all kinds of stuff, such as:
 
-{% highlight erlang %}
+``` erlang
 {ok, Socket} = gen_tcp:connect("localhost", 12345, [binary, {packet, 0}, {active, false}]).
-{% endhighlight %}
+```
 
 
 In this case, the host and port are required, and the third is a list
@@ -29,15 +26,15 @@ then be passed on to another function for further processing. The user
 should only have to pass in one required parameter, and then a list of
 zero or more optional ones, so I want the call would look something like this:
 
-{% highlight erlang %}
+``` erlang
 {ok, Result} = my_func(Arg2, Arg2, Options).
-{% endhighlight %}
+```
 
 where `Options` looks like `[foo, {bar, 20}, {baz, "hello"}]`.
 
 In this case no options are required, so I also added in a 1 parameter version of the function:
 
-<code id="gist-7666492" data-file="function_options.erl"></code>
+<script src="https://gist.github.com/joshrotenberg/7666492.js?file=function_options.erl"> </script>
 
 Pattern matching and recursion make handling this kind of thing pretty
 clean. If I need to add an option or change how one is handled, its

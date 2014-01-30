@@ -1,9 +1,6 @@
 ---
-layout: post
-title: "three bucks"
-description: "i found it"
+title: three bucks
 category: random
-tags: [money]
 ---
 
 I found three dollar bills on the sidewalk yesterday. First I saw one,
