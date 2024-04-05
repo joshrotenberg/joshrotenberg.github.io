@@ -11,6 +11,7 @@ edition = "2021"
 [output.html]
 git-repository-url = "https://github.com/joshrotenberg/joshrotenberg.github.io/tree/main"
 edit-url-template = "https://github.com/joshrotenberg/joshrotenberg.github.io/edit/main/{path}"
+default-theme = "coal"
 
 [output.html.search]
 limit-results = 20
